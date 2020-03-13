@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 					std::cout << "ipV4            \t" << AddressOfInterface[j].ip().toString().toStdString() << std::endl;
 					std::cout << "Mask            \t" << AddressOfInterface[j].netmask().toString().toStdString() << std::endl;
 
-					uint DestIP = AddressOfInterface[j].ip().toIPv4Address() & AddressOfInterface[j].netmask().toIPv4Address();	попробовать htons
+					uint DestIP = AddressOfInterface[j].ip().toIPv4Address() & AddressOfInterface[j].netmask().toIPv4Address();//	попробовать htons
 					
 
 					uint SrcIP = AddressOfInterface[j].ip().toIPv4Address();
