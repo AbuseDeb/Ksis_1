@@ -6,24 +6,18 @@
 #include <QtDebug>
 #include <QtCore>
 #include <Windows.h>
-#include <stdint.h>
-#include <stdio.h>
+#include "sendarpthread.h"
 
 #include <iphlpapi.h>
+//#include <ws2tcpip.h>
 
 
-
-#pragma comment(lib, "iphlpapi.lib") // 
-
-
-
-#define REV(n) ((n << 24) | (((n>>16)<<24)>>16) | (((n<<16)>>24)<<16) | (n>>24))
+#pragma comment (lib, "Ws2_32.lib")
+#pragma comment(lib, "iphlpapi.lib") 
 
 
-void send(IPAddr DestIP, IPAddr SrcIP, PVOID &pMacAddr, PULONG &PhyAddrLen)
-{
-	SendARP(DestIP, SrcIP, pMacAddr, PhyAddrLen);
-}
+//#define REV(n) ((n << 24) | (((n>>16)<<24)>>16) | (((n<<16)>>24)<<16) | (n>>24))
+
 
 
 int main(int argc, char *argv[])
@@ -31,19 +25,10 @@ int main(int argc, char *argv[])
 	
 	QCoreApplication a(argc, argv);
 	
+
+	QList<SendArpThread*> lpSendArpThread;
+
 	QList<QNetworkInterface> Interfaces = QNetworkInterface::allInterfaces();
-
-	QLibrary library("iphlpapi.dll");
-
-	if (!library.load())
-		qDebug() << library.errorString();
-	if (library.load())
-		qDebug() << "library loaded";
-
-
-
-	typedef ULONG (*Func)(IPAddr DestIP, IPAddr SrcIP, PVOID pMacAddr, PULONG PhyAddrLen);
-	Func sendArp = (Func)library.resolve("SendARP");
 
 
 	for (int i = 0; i < Interfaces.size(); i++)
@@ -66,40 +51,38 @@ int main(int argc, char *argv[])
 					std::cout << "ipV4            \t" << AddressOfInterface[j].ip().toString().toStdString() << std::endl;
 					std::cout << "Mask            \t" << AddressOfInterface[j].netmask().toString().toStdString() << std::endl;
 
-					uint DestIP = AddressOfInterface[j].ip().toIPv4Address() & AddressOfInterface[j].netmask().toIPv4Address();//	попробовать htons
+					IPAddr DestIP = AddressOfInterface[j].ip().toIPv4Address() & AddressOfInterface[j].netmask().toIPv4Address();
+					
 					
 
-					uint SrcIP = AddressOfInterface[j].ip().toIPv4Address();
+					IPAddr SrcIP = inet_addr(AddressOfInterface[j].ip().toString().toStdString().c_str());
 					ULONG MacAddr[2];       /* for 6-byte hardware addresses */
 					ULONG PhysAddrLen = 6;  /* default to length of six bytes */
 
 				
 					for (DestIP++; DestIP < AddressOfInterface[j].broadcast().toIPv4Address(); DestIP++)
 					{
-						QHostAddress host(DestIP);
-						QHostAddress host2(SrcIP);
-						std::cout << host2.toString().toStdString()<< "   "<< SrcIP << std::endl;
-
-
 						
-						std::cout << host.toString().toStdString() << std::endl;
+						QHostAddress DestIPHost(DestIP);
+						IPAddr DestIPN = inet_addr(DestIPHost.toString().toStdString().c_str());
+						//QHostAddress DestIPNHost(DestIPN);
+
+						//std::cout << DestIPN << "   " << DestIPNHost.toString().toStdString() << std::endl;
+
+						QHostAddress SrcIPSource(SrcIP);
+						//std::cout << SrcIPSource.toString().toStdString()<< "   "<< SrcIP << std::endl;
+
+						SendArpThread *pSendArp = new SendArpThread(DestIPN, SrcIP);
+						pSendArp->start();
+
+						lpSendArpThread.append(pSendArp);
+
+						//std::cout << host.toString().toStdString() << std::endl;
 						
-						SendARP(DestIP, NULL, &MacAddr, &PhysAddrLen);//Сделать в потоке
+						//SendARP(DestIPN, SrcIP, &MacAddr, &PhysAddrLen);//Сделать в потоке
 
 						//CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)send, (REV(DestIP), REV(SrcIP), &MacAddr, &PhysAddrLen), NULL, NULL);//TcpClient(newConnection)
 
-						/*if (sendArp) {
-							sendArp(REV(DestIP), NULL, &MacAddr, &PhysAddrLen);
-							qDebug() << "nor";
-						}*/
-						
-
-						//if (a == ERROR_NOT_FOUND)
-						//////{
-						//	std::cout << "+";
-						//}
-						
-						//Sleep(100);
 						
 					}
 				}							
@@ -107,6 +90,23 @@ int main(int argc, char *argv[])
 			std::cout << "\n\n";
 		}
 	}
+	bool isOk = false;
+
+	while (isOk == false)
+	{
+		isOk == true;
+		foreach(const SendArpThread *pThread, lpSendArpThread)
+		{
+			if (pThread->m_bIsActive == true)
+			{
+				isOk = false;
+				break;
+			}		
+			isOk = true;
+		}
+	}
+
+
 
 	QProcess cmd;
 	cmd.start("cmd.exe", QStringList() << "/c" << "chcp 437");

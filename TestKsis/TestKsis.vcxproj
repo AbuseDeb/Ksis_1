@@ -12,6 +12,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="sendarpthread.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="sendarpthread.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0755CDA0-71C6-484B-A176-8B9D7AE39F7E}</ProjectGuid>
